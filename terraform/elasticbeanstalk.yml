@@ -1,0 +1,244 @@
+resource "aws_elastic_beanstalk_application" "application_name" {
+  name        = "application_name"
+  description = "application_name"
+}
+
+resource "aws_elastic_beanstalk_environment" "environment_name" {
+  name                = "environment_name"
+  application         = "${aws_elastic_beanstalk_application.application_name.name}"
+  solution_stack_name = "64bit Amazon Linux 2017.09 v2.6.6 running Java 8"
+  cname_prefix = "environment_name"
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name = "VPCId"
+    value = "${var.vpc_id}"
+  }
+  setting {
+    namespace = "aws:ec2:vpc"
+    name = "AssociatePublicIpAddress"
+    value = "false"
+  }
+  setting {
+    namespace = "aws:ec2:vpc"
+    name = "Subnets"
+    value = "${var.subnet-c-private},${var.subnet-a-private}"
+  }
+  setting {
+    namespace = "aws:ec2:vpc"
+    name = "ELBSubnets"
+    value = "${var.subnet-c},${var.subnet-a}"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name = "IamInstanceProfile"
+    value = "aws-elasticbeanstalk-ec2-role"
+  }
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name = "InstanceType"
+    value = "t2.medium"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name = "EC2KeyName"
+    value = "tool"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:asg"
+    name = "Availability Zones"
+    value = "Any 2"
+  }
+  setting {
+    namespace = "aws:autoscaling:asg"
+    name = "MinSize"
+    value = "2"
+  }
+  setting {
+    namespace = "aws:autoscaling:asg"
+    name = "MaxSize"
+    value = "4"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name = "MeasureName"
+    value = "CPUUtilization"
+  }
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name = "LowerThreshold"
+    value = "50"
+  }
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name = "Unit"
+    value = "Percent"
+  }
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name = "UpperThreshold"
+    value = "60"
+  }
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name = "Statistic"
+    value = "Maximum"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name = "ServiceRole"
+    value = "aws-elasticbeanstalk-service-role"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name = "LoadBalancerType"
+    value = "application"
+  }
+
+
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name = "SystemType"
+    value = "enhanced"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+    name = "RollingUpdateEnabled"
+    value = "true"
+  }
+  setting {
+    namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+    name = "RollingUpdateType"
+    value = "Health"
+  }
+  setting {
+    namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+    name = "MinInstancesInService"
+    value = "1"
+  }
+  setting {
+    namespace = "aws:autoscaling:updatepolicy:rollingupdate"
+    name = "MaxBatchSize"
+    value = "1"
+  }
+
+  setting {
+    namespace = "aws:elbv2:listener:default"
+    name = "ListenerEnabled"
+    value = "true"
+  }
+  setting {
+    namespace = "aws:elbv2:listener:443"
+    name = "Protocol"
+    value = "HTTPS"
+  }
+  setting {
+    namespace = "aws:elbv2:listener:443"
+    name      = "ListenerEnabled"
+    value     = "true"
+  }
+  setting {
+    namespace = "aws:elbv2:listener:443"
+    name = "SSLCertificateArns"
+    value = "arn:aws:acm:ap-northeast-2:064020620436:certificate/5c26e1b2-40c8-4edd-bb9f-b3fae7865d09"
+  }
+  setting{
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name = "Port"
+    value  = "10080"
+  }
+  setting{
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name = "Protocol"
+    value  = "HTTP"
+  }
+  setting{
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name = "HealthCheckInterval"
+    value  = "60"
+  }
+  setting{
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name = "HealthCheckPath"
+    value  = "/health"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name = "BatchSizeType"
+    value = "Percentage"
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name = "BatchSize"
+    value = "50"
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name = "DeploymentPolicy"
+    value = "Rolling"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "addEC2ForPeaktime"
+    name = "StartTime"
+    value = "2018-02-28T08:30:00Z"
+  }
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "addEC2ForPeaktime"
+    name = "MinSize"
+    value = "3"
+  }
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "addEC2ForPeaktime"
+    name = "MaxSize"
+    value = "4"
+  }
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "addEC2ForPeaktime"
+    name = "Recurrence"
+    value = "30 2 * * *"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "deleteEC2ForPeaktime"
+    name = "StartTime"
+    value = "2018-02-28T08:30:00Z"
+  }
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "deleteEC2ForPeaktime"
+    name = "MinSize"
+    value = "2"
+  }
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "deleteEC2ForPeaktime"
+    name = "MaxSize"
+    value = "4"
+  }
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource = "deleteEC2ForPeaktime"
+    name = "Recurrence"
+    value = "30 4 * * *"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sns:topics"
+    name = "Notification Endpoint"
+    value = "dev@vendys.co.kr"
+  }
+}

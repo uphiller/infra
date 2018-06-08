@@ -1,0 +1,25 @@
+# 신규 도커 이미지 빌드
+# 실행 스크립트 : ansible-playbook createApiTest.yml --extra-vars "service=corp-web  target=build"
+---
+- hosts: localhost
+  tasks:
+  - name: Remove local image
+    docker_image:
+      state: absent
+      name: 064020620436.dkr.ecr.ap-northeast-2.amazonaws.com/service/{{ service }}
+      tag: test
+
+  - name: build new image
+    command: "docker build -t 064020620436.dkr.ecr.ap-northeast-2.amazonaws.com/service/{{ service }}:test --build-arg FILE={{ target }} ."
+
+  - name: ECR login
+    shell: "$(aws ecr get-login --no-include-email)"
+
+  - name: ecr-repo
+    ecs_ecr: name=service/{{ service }}
+
+  - name: remove ECR image
+    command: "aws ecr batch-delete-image --repository-name service/{{ service }} --image-ids imageTag=test"
+
+  - name: push ECR image
+    command: "docker push 064020620436.dkr.ecr.ap-northeast-2.amazonaws.com/service/{{ service }}:test"

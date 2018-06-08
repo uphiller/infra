@@ -1,0 +1,70 @@
+resource "aws_vpc" "default" {
+  cidr_block = "172.31.0.0/16"
+  tags {
+        Name = "default"
+  }
+}
+
+resource "aws_internet_gateway" "test" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  tags{
+    Name = "test"
+  }
+}
+
+resource "aws_subnet" "default-c" {
+  vpc_id     = "${aws_vpc.default.id}"
+  cidr_block = "172.31.16.0/20"
+  map_public_ip_on_launch = "true"
+
+  tags {
+    Name = "default-c"
+  }
+}
+
+resource "aws_subnet" "default-a" {
+  vpc_id     = "${aws_vpc.default.id}"
+  cidr_block = "172.31.0.0/20"
+  map_public_ip_on_launch = "true"
+
+  tags {
+    Name = "default-a"
+  }
+}
+
+resource "aws_route_table" "default" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_internet_gateway.test.id}"
+  }
+  route {
+        cidr_block = "10.0.0.0/16"
+        vpc_peering_connection_id = "${aws_vpc_peering_connection.release.id}"
+  }
+  route {
+        cidr_block = "192.168.0.0/16"
+        vpc_peering_connection_id = "${aws_vpc_peering_connection.database.id}"
+  }
+
+}
+
+resource "aws_vpc_peering_connection" "release" {
+  vpc_id   = "${aws_vpc.default.id}"
+  peer_vpc_id        = "${var.vpc_release_id}"
+
+  tags {
+    Name = "Peering to release"
+  }
+}
+
+resource "aws_vpc_peering_connection" "database" {
+  vpc_id   = "${aws_vpc.default.id}"
+  peer_vpc_id        = "${var.vpc_database_id}"
+
+  tags {
+    Name = "Peering to database"
+  }
+}

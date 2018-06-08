@@ -1,0 +1,69 @@
+# aws ec2 생성
+---
+- hosts: localhost
+  tasks:
+  - name: launch test ec2
+    ec2:
+      image: ami-e21cc38c
+      vpc_subnet_id: subnet-9a80a6d7
+      group: test
+      key_name: tool
+      instance_type: t2.large
+      assign_public_ip: yes
+      volumes:
+        - device_name: /dev/xvda
+          volume_type: gp2
+          volume_size: 50
+      group_id: sg-286fa943
+      wait: yes
+      wait_timeout: 500
+      count: 1
+      monitoring: yes
+      instance_tags:
+            Name: test
+            Group: op
+    register: ec2
+
+  - name: Wait for SSH to come up
+    wait_for:
+      host: "{{ item.private_ip }}"
+      port: 22
+      delay: 60
+      timeout: 320
+      state: started
+    with_items: "{{ ec2.instances }}"
+
+  - name: copy docker-compose file
+    command: "scp -o StrictHostKeyChecking=no ~/Infrastructure/test/docker-compose.yml  ec2-user@{{ item.private_ip }}:./docker-compose.yml"
+    with_items: "{{ ec2.instances }}"
+
+  - name: install docker
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip }} 'sudo yum update -y;sudo yum install -y docker;sudo service docker start;sudo usermod -a -G docker ec2-user;'"
+    with_items: "{{ ec2.instances }}"
+
+  - name: install docker-compose
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip }} 'sudo curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose;sudo chmod +x /usr/local/bin/docker-compose'"
+    with_items: "{{ ec2.instances }}"
+
+  - name: set timezone
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip }} 'sudo ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime'"
+    with_items: "{{ ec2.instances }}"
+
+  - name: get login ECR
+    shell: "aws ecr get-login --no-include-email"
+    register: login
+
+  - name: remote login ECR
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip_address }} {{ login.stdout }}"
+    with_items: "{{ ec2.instances }}"
+
+  - name: excute docker-compose
+    command: "ssh  ec2-user@{{ item.private_ip_address }} 'docker-compose up -d'"
+    with_items: "{{ ec2.instances }}"
+
+
+  #- name: associate an elastic IP with an instance
+  #  ec2_eip:
+  #    device_id: "{{ item.id }}"
+  #    ip: 13.124.213.201
+  #  with_items: "{{ ec2.instances }}"

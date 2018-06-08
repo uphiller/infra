@@ -1,0 +1,5 @@
+FROM java:8
+RUN bash -c 'touch /app.war'
+RUN apt-get update && apt-get install -q -y ssmtp mailutils && rm -rf /var/lib/apt/lists/*
+ENV TZ=Asia/Seoul
+ENTRYPOINT exec java -Xmx512m -Xms256m -jar /app.war

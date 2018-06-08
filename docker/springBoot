@@ -1,0 +1,4 @@
+FROM java:8
+RUN bash -c 'touch /app.war'
+ENV TZ=Asia/Seoul
+ENTRYPOINT exec java -Xmx512m -Xms256m -jar /app.war

@@ -1,0 +1,35 @@
+# 운영중인 테스트 서버에 해당 서비스 반영
+# 실행 스크립트 : ansible-playbook ecLoginStagingEc2.yml --extra-vars "service="
+---
+- hosts: localhost
+  tasks:
+  - ec2_instance_facts:
+        filters:
+          instance-state-name: running
+          "tag:Name": test
+          "tag:Group": op
+    register: ec2_facts
+
+  - name: stop if staging not exist
+    meta: end_play
+    when: ec2_facts.instances|length <  1
+
+  - name: get login syntax ECR
+    shell: "aws ecr get-login --no-include-email"
+    register: login
+
+  - name: remote login ECR
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip_address }} {{ login.stdout }}"
+    with_items: "{{ ec2_facts.instances }}"
+
+  - name: pull new image
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip_address }} 'docker pull 064020620436.dkr.ecr.ap-northeast-2.amazonaws.com/service/{{ service }}:test'"
+    with_items: "{{ ec2_facts.instances }}"
+
+  - name: restart service
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip_address }} 'docker-compose up -d --no-deps --build {{ service }}'"
+    with_items: "{{ ec2_facts.instances }}"
+
+  - name: remove untag docker images
+    command: "ssh -o StrictHostKeyChecking=no ec2-user@{{ item.private_ip_address }} 'docker rmi $(docker images -q --filter \"dangling=true\")'"
+    with_items: "{{ ec2_facts.instances }}"
